@@ -1,0 +1,171 @@
+---
+# 指定语言为C++
+Language: Cpp
+# 基于Google的代码风格
+BasedOnStyle: Google
+# 访问修饰符的缩进偏移量
+AccessModifierOffset: -1
+# 括号对齐方式
+AlignAfterOpenBracket: Align
+# 连续赋值语句的对齐
+AlignConsecutiveAssignments: false
+# 连续声明语句的对齐
+AlignConsecutiveDeclarations: false
+# 反斜杠换行的对齐方式
+AlignEscapedNewlines: Left
+# 操作符对齐
+AlignOperands: true
+# 尾随注释对齐
+AlignTrailingComments: true
+# 允许所有声明参数放在下一行
+AllowAllParametersOfDeclarationOnNextLine: true
+# 允许短代码块放在同一行
+AllowShortBlocksOnASingleLine: false
+# 允许case标签放在同一行
+AllowShortCaseLabelsOnASingleLine: false
+# 允许短函数放在同一行
+AllowShortFunctionsOnASingleLine: Inline
+# 允许if语句放在同一行
+AllowShortIfStatementsOnASingleLine: false
+# 允许循环语句放在同一行
+AllowShortLoopsOnASingleLine: false
+# 返回类型后的换行方式
+AlwaysBreakAfterReturnType: None
+# 多行字符串前的换行
+AlwaysBreakBeforeMultilineStrings: true
+# 模板声明前的换行
+AlwaysBreakTemplateDeclarations: Yes
+# 参数打包方式
+BinPackArguments: true
+BinPackParameters: true
+# 大括号换行规则
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+# 二元运算符前的换行
+BreakBeforeBinaryOperators: None
+# 大括号前的换行
+BreakBeforeBraces: Attach
+# 三元运算符前的换行
+BreakBeforeTernaryOperators: true
+# 构造函数初始化列表的换行
+BreakConstructorInitializers: BeforeColon
+# 字符串字面量的换行
+BreakStringLiterals: true
+# 行长度限制
+ColumnLimit: 100
+# 注释编译指示
+CommentPragmas: '^ IWYU pragma:'
+# 构造函数初始化列表的格式
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+# 构造函数初始化列表的缩进
+ConstructorInitializerIndentWidth: 4
+# 续行缩进
+ContinuationIndentWidth: 4
+# C++11大括号列表样式
+Cpp11BracedListStyle: true
+# 指针对齐方式
+DerivePointerAlignment: false
+# 禁用格式化
+DisableFormat: false
+# 自动检测参数打包
+ExperimentalAutoDetectBinPacking: false
+# 修复命名空间注释
+FixNamespaceComments: true
+# include块的组织方式
+IncludeBlocks: Regroup
+# 自定义include排序
+IncludeCategories:
+  - Regex: '^<[^/]+>$'
+    Priority: 1
+  - Regex: '^<.*>$'
+    Priority: 2
+  - Regex: '.*'
+    Priority: 3
+# case标签的缩进
+IndentCaseLabels: true
+# 预处理指令的缩进
+IndentPPDirectives: None
+# 缩进宽度（修改为4个空格）
+IndentWidth: 4
+# 包装函数名的缩进
+IndentWrappedFunctionNames: false
+# 块开始处的空行
+KeepEmptyLinesAtTheStartOfBlocks: false
+# 保留的最大空行数
+MaxEmptyLinesToKeep: 1
+# 命名空间缩进
+NamespaceIndentation: None
+# 各种换行惩罚值
+PenaltyBreakAssignment: 2
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 120
+PenaltyBreakString: 1000
+PenaltyExcessCharacter: 1000000
+PenaltyReturnTypeOnItsOwnLine: 200
+# 指针对齐方式
+PointerAlignment: Left
+# 原始字符串格式
+RawStringFormats:
+  - Language: Cpp
+    Delimiters:
+      - cc
+      - CC
+      - cpp
+      - Cpp
+      - CPP
+      - 'c++'
+      - 'C++'
+    CanonicalDelimiter: ''
+    BasedOnStyle: google
+# 重新格式化注释
+ReflowComments: true
+# 排序include
+SortIncludes: true
+# 排序using声明
+SortUsingDeclarations: true
+# C风格类型转换后的空格
+SpaceAfterCStyleCast: false
+# template关键字后的空格
+SpaceAfterTemplateKeyword: true
+# 赋值运算符前的空格
+SpaceBeforeAssignmentOperators: true
+# C++11大括号列表前的空格
+SpaceBeforeCpp11BracedList: false
+# 构造函数初始化列表冒号前的空格
+SpaceBeforeCtorInitializerColon: true
+# 继承冒号前的空格
+SpaceBeforeInheritanceColon: true
+# 括号前的空格
+SpaceBeforeParens: ControlStatements
+# 基于范围的for循环冒号前的空格
+SpaceBeforeRangeBasedForLoopColon: true
+# 空括号内的空格
+SpaceInEmptyParentheses: false
+# 尾随注释前的空格数
+SpacesBeforeTrailingComments: 2
+# 尖括号内的空格
+SpacesInAngles: false
+# 容器字面量中的空格
+SpacesInContainerLiterals: true
+# C风格类型转换括号内的空格
+SpacesInCStyleCastParentheses: false
+# 括号内的空格
+SpacesInParentheses: false
+# 方括号内的空格
+SpacesInSquareBrackets: false
+# C++标准
+Standard: Auto
+# Tab宽度
+TabWidth: 4
+# 不使用Tab
+UseTab: Never 

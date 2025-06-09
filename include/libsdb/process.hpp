@@ -1,0 +1,43 @@
+#ifndef SDB_PROCESS_HPP
+#define SDB_PROCESS_HPP
+
+#include <filesystem>
+#include <memory>
+
+#include <sys/types.h>
+
+namespace sdb {
+
+enum class process_state { stopped, running, exited, terminated };
+
+struct stop_reason {
+    stop_reason(int wait_status);
+    process_state reason;  // reason for stop
+    std::uint8_t info;     // info of stop
+};
+
+class Process {
+   public:
+    Process() = delete;
+    Process(const Process&) = delete;
+    Process& operator=(const Process&) = delete;
+
+    static std::unique_ptr<Process> launch(const std::filesystem::path& path);
+    static std::unique_ptr<Process> attach(pid_t pid);
+
+    void resume();
+    pid_t pid() const { return pid_; }
+    stop_reason wait_on_signal();
+
+    ~Process();
+
+   private:
+    Process(pid_t pid, bool terminate_on_end) : pid_(pid), terminate_on_end_(terminate_on_end) {}
+    pid_t pid_ = 0;
+    bool terminate_on_end_ = true;
+    process_state state_ = process_state::stopped;
+};
+
+}  // namespace sdb
+
+#endif  // SDB_PROCESS_HPP
