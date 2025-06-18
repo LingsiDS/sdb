@@ -1,12 +1,20 @@
+#include <iostream>
 #include <unistd.h>
 
 #include <libsdb/error.hpp>
+#include <libsdb/pipe.hpp>
 #include <libsdb/process.hpp>
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
 namespace sdb {
+
+void exit_with_perror(Pipe& channel, std::string const& prefix) {
+    auto message = prefix + ": " + std::strerror(errno);
+    channel.write(reinterpret_cast<std::byte*>(message.data()), message.size());
+    exit(-1);
+}
 
 stop_reason::stop_reason(int wait_status) : reason(process_state::stopped), info(0) {
     if (WIFEXITED(wait_status)) {
@@ -22,23 +30,53 @@ stop_reason::stop_reason(int wait_status) : reason(process_state::stopped), info
 }
 
 std::unique_ptr<Process> Process::launch(const std::filesystem::path& path) {
+    Pipe channel(/*close_on_exec=*/true);
     pid_t pid;
-    if ((pid == fork()) < 0) {
+    // std::cout << "Parent: About to fork..." << std::flush << std::endl;
+
+    if ((pid = fork()) < 0) {
+        std::cout << "Parent: fork failed" << std::flush << std::endl;
         Error::send_errno("fork failed");
     }
 
     if (pid == 0) {
-        if (ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) < 0) {
-            Error::send_errno("ptrace failed");
-        }
+        // std::cout << "Child: Process started, pid=" << getpid() << std::flush << std::endl;
+        channel.close_read();
 
-        if (execlp(path.c_str(), path.c_str(), nullptr) < 0) {
-            Error::send_errno("execlp failed");
+        // std::cout << "Child: About to call ptrace..." << std::flush << std::endl;
+        if (ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) < 0) {
+            // std::cout << "Child: ptrace failed: " << strerror(errno) << std::flush << std::endl;
+            exit_with_perror(channel, "Tracing failed");
         }
+        // std::cout << "Child: ptrace succeeded" << std::flush << std::endl;
+
+        // std::cout << "Child: About to call execlp with path: " << path << std::flush <<
+        // std::endl;
+        if (execlp(path.c_str(), path.c_str(), (char*)nullptr) < 0) {
+            // std::cout << "Child: execlp failed: " << strerror(errno) << std::flush << std::endl;
+            exit_with_perror(channel, "exec failed");
+        }  // child process end here
+        // std::cout << "Child: execlp succeeded (this should not be reached)" << std::flush
+        //           << std::endl;
     }
 
+    channel.close_write();
+    auto data = channel.read();
+    channel.close_read();
+
+    if (data.size() > 0) {
+        waitpid(pid, nullptr, 0);
+        // std::cout << "Parent: Received error from child" << std::flush << std::endl;
+        std::string message(reinterpret_cast<char*>(data.data()), data.size());
+        Error::send(message);
+    }
+
+    // std::cout << "Parent: Creating Process object..." << std::flush << std::endl;
     std::unique_ptr<Process> proc(new Process(pid, true));
+
+    // std::cout << "Parent: About to call wait_on_signal..." << std::flush << std::endl;
     proc->wait_on_signal();
+    // std::cout << "Parent: wait_on_signal completed" << std::flush << std::endl;
 
     return proc;
 }
@@ -67,9 +105,16 @@ void Process::resume() {
 stop_reason Process::wait_on_signal() {
     int wait_status;
     int options = 0;
+    // std::cout << "wait_on_signal: About to waitpid for pid=" << pid_ << std::flush << std::endl;
+
     if (waitpid(pid_, &wait_status, options) < 0) {
+        // std::cout << "wait_on_signal: waitpid failed: " << strerror(errno) << std::flush
+        //           << std::endl;
         Error::send_errno("waitpid failed");
     }
+
+    // std::cout << "wait_on_signal: waitpid succeeded, status=" << wait_status << std::flush
+    //           << std::endl;
     stop_reason reason(wait_status);
     state_ = reason.reason;
     return reason;
