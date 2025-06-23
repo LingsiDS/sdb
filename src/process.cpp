@@ -29,35 +29,26 @@ stop_reason::stop_reason(int wait_status) : reason(process_state::stopped), info
     }
 }
 
-std::unique_ptr<Process> Process::launch(const std::filesystem::path& path) {
+/**
+ * @param debug:process only attach to target process when debug is true
+ */
+std::unique_ptr<Process> Process::launch(const std::filesystem::path& path, bool debug) {
     Pipe channel(/*close_on_exec=*/true);
     pid_t pid;
-    // std::cout << "Parent: About to fork..." << std::flush << std::endl;
-
     if ((pid = fork()) < 0) {
-        std::cout << "Parent: fork failed" << std::flush << std::endl;
         Error::send_errno("fork failed");
     }
 
     if (pid == 0) {
-        // std::cout << "Child: Process started, pid=" << getpid() << std::flush << std::endl;
         channel.close_read();
 
-        // std::cout << "Child: About to call ptrace..." << std::flush << std::endl;
-        if (ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) < 0) {
-            // std::cout << "Child: ptrace failed: " << strerror(errno) << std::flush << std::endl;
+        if (debug and ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) < 0) {
             exit_with_perror(channel, "Tracing failed");
         }
-        // std::cout << "Child: ptrace succeeded" << std::flush << std::endl;
 
-        // std::cout << "Child: About to call execlp with path: " << path << std::flush <<
-        // std::endl;
         if (execlp(path.c_str(), path.c_str(), (char*)nullptr) < 0) {
-            // std::cout << "Child: execlp failed: " << strerror(errno) << std::flush << std::endl;
-            exit_with_perror(channel, "exec failed");
-        }  // child process end here
-        // std::cout << "Child: execlp succeeded (this should not be reached)" << std::flush
-        //           << std::endl;
+            exit_with_perror(channel, "exec failed");  // write data through pipe to parent process
+        }                                              // child process end here
     }
 
     channel.close_write();
@@ -71,12 +62,9 @@ std::unique_ptr<Process> Process::launch(const std::filesystem::path& path) {
         Error::send(message);
     }
 
-    // std::cout << "Parent: Creating Process object..." << std::flush << std::endl;
-    std::unique_ptr<Process> proc(new Process(pid, true));
-
-    // std::cout << "Parent: About to call wait_on_signal..." << std::flush << std::endl;
-    proc->wait_on_signal();
-    // std::cout << "Parent: wait_on_signal completed" << std::flush << std::endl;
+    std::unique_ptr<Process> proc(new Process(pid, true, debug));
+    if (debug)
+        proc->wait_on_signal();
 
     return proc;
 }
@@ -89,7 +77,7 @@ std::unique_ptr<Process> Process::attach(pid_t pid) {
         Error::send_errno("ptrace failed, could not attach to process");
     }
 
-    std::unique_ptr<Process> proc(new Process(pid, false));
+    std::unique_ptr<Process> proc(new Process(pid, /*terminate_on_end=*/false, /*attached=*/true));
     proc->wait_on_signal();
 
     return proc;
@@ -123,16 +111,18 @@ stop_reason Process::wait_on_signal() {
 Process::~Process() {
     if (pid_ != 0) {
         int status;
-        if (state_ == process_state::running) {
-            kill(pid_, SIGSTOP);  // process `pid_` whill stopped
-            waitpid(pid_, &status, 0);
-        }
-        ptrace(PTRACE_DETACH, pid_, status, nullptr);
-        kill(pid_, SIGCONT);  // process `pid_t` whill run continue
+        if (is_attached_) {
+            if (state_ == process_state::running) {
+                kill(pid_, SIGSTOP);  // process `pid_` whill stopped
+                waitpid(pid_, &status, 0);
+            }
+            ptrace(PTRACE_DETACH, pid_, status, nullptr);
+            kill(pid_, SIGCONT);  // process `pid_t` whill run continue
 
-        if (terminate_on_end_) {
-            kill(pid_, SIGKILL);  // kill the process `pid_'
-            waitpid(pid_, &status, 0);
+            if (terminate_on_end_) {
+                kill(pid_, SIGKILL);  // kill the process `pid_'
+                waitpid(pid_, &status, 0);
+            }
         }
     }
 }
