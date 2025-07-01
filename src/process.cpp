@@ -105,6 +105,11 @@ stop_reason Process::wait_on_signal() {
     //           << std::endl;
     stop_reason reason(wait_status);
     state_ = reason.reason;
+
+    // read all registers when process stopped
+    if (is_attached_ && state_ == process_state::stopped) {
+        read_all_registers();
+    }
     return reason;
 }
 
@@ -126,4 +131,34 @@ Process::~Process() {
         }
     }
 }
+
+void Process::read_all_registers() {
+    // read general purpose registers
+    if (ptrace(PTRACE_GETREGS, pid_, nullptr, &get_register().data_.regs) < 0) {
+        Error::send_errno("Could not read GPR registers");
+    }
+    // read floating point registers
+    if (ptrace(PTRACE_GETFPREGS, pid_, nullptr, &get_register().data_.i387) < 0) {
+        Error::send_errno("Could not read FPR registers");
+    }
+    for (int i = 0; i < 8; i++) {
+        // read debug registers
+        auto id = static_cast<int>(register_id::dr0) + i;
+        auto info = register_info_by_id(static_cast<register_id>(id));
+
+        errno = 0;
+        std::int64_t data = ptrace(PTRACE_PEEKUSER, pid_, info.offset, nullptr);
+        if (errno != 0) {
+            Error::send_errno("Could not read debug register");
+        }
+        get_register().data_.u_debugreg[i] = data;  // update debug register
+    }
+}
+
+void Process::write_user_area(std::size_t offset, std::uint64_t value) {
+    if (ptrace(PTRACE_POKEUSER, pid_, offset, value) < 0) {
+        Error::send_errno("Could not write user area");
+    }
+}
+
 }  // namespace sdb

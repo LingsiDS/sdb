@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <memory>
 
+#include <libsdb/register.hpp>
 #include <sys/types.h>
 
 namespace sdb {
@@ -31,13 +32,23 @@ class Process {
 
     ~Process();
 
+    Register& get_register() { return *register_; }
+    const Register& get_register() const { return *register_; }
+    void write_user_area(std::size_t offset, std::uint64_t value);
+
    private:
     Process(pid_t pid, bool terminate_on_end, bool is_attached)
-        : pid_(pid), terminate_on_end_(terminate_on_end), is_attached_(is_attached) {}
+        : pid_(pid),
+          terminate_on_end_(terminate_on_end),
+          is_attached_(is_attached),
+          register_(new Register(*this)) {}
     pid_t pid_ = 0;
     bool terminate_on_end_ = true;
     bool is_attached_ = true;
     process_state state_ = process_state::stopped;
+
+    std::unique_ptr<Register> register_;
+    void read_all_registers();  // read all register when process stopped
 };
 
 }  // namespace sdb
